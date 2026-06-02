@@ -85,6 +85,7 @@ novel-projects/
 | outline-ready | 大纲已生成 | outline |
 | constraint-docs | 约束文档已强化 | continuation |
 | writing | 写作中 | continuation / review |
+| writing-paused | 写作被用户暂停 | continuation（恢复） |
 | quality-loop | 质量循环中 | review |
 | report-ready | 完成报告 | [终态] |
 

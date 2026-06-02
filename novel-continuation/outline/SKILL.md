@@ -41,7 +41,8 @@ description: >
 | `answers` 存在但 `design/01-大纲.md` 缺失 | 第2步完成 | 跳到第3步（生成大纲）|
 | `01-大纲.md` 存在但 `chapters` 数组为空 | 第3步未填计划 | 填章节列表 |
 | `01-大纲.md` 存在且 `chapters` 非空 | 第3步完成 | 跳到第3-A步（强化约束）|
-| 5 个 `design/*.md` 齐全 | 第3-A步完成 | 退出 |
+| 6 个 `design/*.md` 齐全且 `currentStep == "constraint-docs"` | 第3-A步完成 | 退出至 continuation 技能 |
+| 6 个 `design/*.md` 齐全但 `currentStep != "constraint-docs"` | 异常：chapter-splitting 已生成约束文档 | 补充 `currentStep` 并退出至 continuation |
 
 ## 第 1 步：分析文本
 
