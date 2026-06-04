@@ -18,6 +18,7 @@
 | **5 项门 + 33 维拆分** | 每章跑 5 项门（轻量、必跑），全部完成后才跑 33 维（全局、按题材激活）|
 | **Token 预算管理** | 长篇 20+ 章自动降级：完整 → 摘要 → 强制摘要三档阈值（60% / 85%）|
 | **无中断写作** | 从写作到质量循环结束，零用户交互，自动逐章流转（4 个固定交互点）|
+| **章节前回顾机制** | 每次续写前自动回顾前一章的 outline/review/audit + 整体小说状态，确保连贯性 |
 | **运行日志** | `meta/_run-log.jsonl` 记录 27 类事件，便于事后审计和断点恢复 |
 | **可调参数** | 5 个核心阈值（minWordCount / reviewPassThreshold / outlineCoverageThreshold / maxRevisionRounds / maxTotalRevisionPerChapter）通过 `config` 字段集中管理 |
 
@@ -29,9 +30,24 @@
 novel-continuation/
   SKILL.md                       # 工程化入口（路由 + 状态规范 + 全局交互点 + 通用红旗）
   chapter-splitting/SKILL.md     # 阶段 0：导入 + 三遍读取 + 题材识别 + 文风 + 约束文档
-  outline/SKILL.md               # 阶段 1-3：分析 + 大纲 + 强化约束
-  continuation/SKILL.md          # 阶段 4：逐章写作（串行，不含评审）
-  review/SKILL.md                # 阶段 5：5 项门（每章）+ 33 维审计（全局）+ 质量循环
+  outline/SKILL.md               # 阶段 1-3：分析 + 大纲（生成 per-chapter 大纲到 outline/）
+  continuation/SKILL.md          # 阶段 4：逐章写作（含前章回顾机制）
+  review/SKILL.md                # 阶段 5：5 项门（review/）+ 33 维审计（audit/）+ 质量循环
+```
+
+### 项目目录（运行时生成）
+
+```
+novel-projects/[项目名称]/
+  meta/          设计/           outline/         chapters/        review/          audit/           truth/
+  _project-meta  00-人物档案     第01章-大纲      第01章-正文      _review-01       _audit-01        world-state
+  02-写作计划    01-大纲(master) 第02章-大纲      第02章-正文      _review-02       _audit-02        character-matrix
+  _run-log       03-世界设定                      _markers                                         chapter-summaries
+                 04-时间线                                                                         ...
+                 05-术语表
+                 06-核心驱动
+                 98-决策日志
+                 99-冲突日志
 ```
 
 入口 `SKILL.md` 是工程化枢纽，包含：
@@ -118,7 +134,7 @@ novel-projects/
       _run-log.jsonl                 # 运行日志（27 类事件，自动追加）
     design/                          # 设计约束文档
       00-人物档案.md                 # [必选] 人物档案
-      01-大纲.md                     # [必选] 大纲
+      01-大纲.md                     # [必选] master 大纲索引（全局概览）
       02-风格指南.md                 # [按题材] 仅当用户提供参考文风时
       03-世界设定书.md               # [必选] 世界设定
       04-时间线.md                   # [必选] 时间线
@@ -126,10 +142,14 @@ novel-projects/
       06-核心驱动.md                 # [必选] 主线/支线/伏笔追踪
       98-写作决策日志.md             # [运行时] 写作中不确定的决策记录
       99-冲突日志.md                 # [运行时] 跨章设定矛盾记录
+    outline/                         # 按章节拆分的大纲
+      第XX章-大纲.md                 # [每章] 独立大纲文件（核心事件/人物/场景/悬念钩子）
     chapters/                        # 章节正文
       第XX章-标题.md                 # 各章节正文
       _markers.md                    # 速读标记索引
+    review/                          # 章节评审门
       _review-第XX章.md              # [每章] 5 项门评审报告
+    audit/                           # 33 维质量审计
       _audit-第XX章.md               # [全局] 33 维审计报告（全部完成后才生成）
     truth/                           # JSON 真相文件
       world-state.json               # [必选] 世界状态
@@ -147,6 +167,18 @@ novel-projects/
 - **必选**（12 个）：5 design + 7 truth，任何题材都生成
 - **按题材激活**（3 个）：02-风格指南、truth/数值系统、truth/年代考据
 - **运行时追加**（3 个）：98-写作决策日志、99-冲突日志、meta/_run-log.jsonl
+
+### 目录职责划分
+
+| 目录 | 内容 | 维护者 |
+|------|------|--------|
+| `design/` | 小说设定文档（文字描述，供写作参考） | outline / continuation |
+| `outline/` | 每章独立大纲（核心事件 + 人物 + 场景 + 钩子） | outline 生成，continuation 阅读 |
+| `chapters/` | 仅章节正文 + 速读标记 | continuation |
+| `review/` | 5 项评审门结果（每章完成后立即写入） | review（continuation 触发） |
+| `audit/` | 33 维审计结果（全部章节完成后统一生成） | review |
+| `truth/` | JSON 真相文件（机器可读，自动化校验用） | outline / continuation / review |
+| `meta/` | 项目元数据 + 写作计划 + 运行日志 | all |
 
 ---
 
@@ -190,21 +222,22 @@ novel-projects/
   ├─[import-done]→ outline
   │   1. 分析文本（人物/情节/结构/文风/设定/专有名词/时间线）
   │   2. 建议续写章数 + 询问 2 个问题（全局交互点 #2）
-  │   3. 生成大纲 → 强制检查点更新项目文件
-  │   3-A. 强化约束文档
+   │   3. 生成大纲（写入 design/01-大纲.md master 索引 + outline/ 每章详细规划）
+   │   3-A. 强化约束文档
   │   → 全局交互点 #3 询问大纲批准（不通过时询问修改意见，2 轮后强制 failed）
   │
-  ├─[constraint-docs]→ continuation
-  │   4. 逐章写作（串行模式，零中断）
-  │      步骤 1: 写前分析（按 token 预算动态降级）
-  │      步骤 2: 撰写
-  │      步骤 3: 撰写后优化
-  │      步骤 4: 收尾 + 自动流转
-  │      每章完成后调用 review 技能做章节门（5 项）
+   ├─[constraint-docs]→ continuation
+   │   4. 逐章写作（串行模式，零中断）
+   │      步骤 0: 前章回顾（读前一章 outline/review/audit + 整体小说状态）
+   │      步骤 1: 写前分析（按 token 预算动态降级读设计文档 + 真相文件）
+   │      步骤 2: 撰写
+   │      步骤 3: 撰写后优化
+   │      步骤 4: 收尾 + 自动流转
+   │      每章完成后调用 review 技能做章节门（5 项，写入 review/）
   │
-  └─[writing/quality-loop]→ review
-      5-A. 章节评审门（每章 5 项检查，写入 _review-第N章.md）
-      5-B. 33 维度审计（全部完成后统一执行，写入 _audit-第N章.md）
+   └─[writing/quality-loop]→ review
+       5-A. 章节评审门（每章 5 项检查，写入 review/_review-第N章.md）
+       5-B. 33 维度审计（全部完成后统一执行，写入 audit/_audit-第N章.md）
       5-C. 整体架构评估（6 项）
       5-D. 完成报告（全局交互点 #4）
 ```
@@ -218,8 +251,9 @@ novel-projects/
 - **冲突驱动剧情**：每章必须有冲突或转折
 - **悬念承上启下**：每章结尾留下钩子
 - **逐章写作，全流程零中断**：一旦开始，连续完成所有章节
+- **前章回顾机制**：每次续写前自动检索前一章大纲/评审/审计 + 整体小说状态
 - **只使用串行模式**：不并行、不 Teams
-- **5 项门 + 33 维拆分**：每章轻量门，全局重审计
+- **5 项门 + 33 维拆分**：每章轻量门（review/），全局重审计（audit/）
 - **题材机械激活维度**：禁止 AI 主观判断
 - **约束文档三层分类**：必选 / 按题材 / 运行时
 - **可调参数集中管理**：5 个核心阈值 + token 预算

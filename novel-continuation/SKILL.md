@@ -131,7 +131,7 @@ novel-projects/
       _run-log.jsonl
     design/
       00-人物档案.md
-      01-大纲.md
+      01-大纲.md (master 大纲索引)
       02-风格指南.md (按题材)
       03-世界设定书.md
       04-时间线.md
@@ -139,11 +139,15 @@ novel-projects/
       06-核心驱动.md
       98-写作决策日志.md
       99-冲突日志.md
+    outline/                        ← 按章节拆分的大纲
+      第XX章-大纲.md
     chapters/
       第XX章-标题.md
       _markers.md
-      _review-第XX章.md (5项门)
-      _audit-第XX章.md (33维审计)
+    review/                         ← 章节评审门（5项）
+      _review-第XX章.md
+    audit/                          ← 33维质量审计
+      _audit-第XX章.md
     truth/
       world-state.json
       character-matrix.json
@@ -190,7 +194,7 @@ novel-projects/
 ├─ constraint-docs          → continuation 写前确认
 ├─ writing                  → continuation（找 chapters 数组中第一个非 completed）
 ├─ writing-paused           → continuation（恢复，更新状态为 writing）
-├─ quality-loop             → review（找 _review-第N章.md 缺失或 status != "passed"）
+├─ quality-loop             → review（找 review/_review-第N章.md 缺失或 status != "passed"）
 └─ report-ready             → review 完成报告
 ```
 

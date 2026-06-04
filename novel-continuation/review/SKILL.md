@@ -13,8 +13,8 @@ description: >
 ## 概述
 
 负责所有质量评审工作。两种模式：
-1. **章节评审门** - 每章完成后的 5 项检查（写入 `_review-第N章.md`）
-2. **全局质量循环** - 全部章节完成后的 33 维度审计（写入 `_audit-第N章.md`）
+1. **章节评审门** - 每章完成后的 5 项检查（写入 `review/_review-第N章.md`）
+2. **全局质量循环** - 全部章节完成后的 33 维度审计（写入 `audit/_audit-第N章.md`）
 
 **通用红旗与全局交互点清单见 `novel-continuation/SKILL.md`。**
 
@@ -31,13 +31,13 @@ description: >
 ## 核心工作流
 
 ```
-章节评审门（5 项检查，写入 _review-第N章.md）
+章节评审门（5 项检查，写入 review/_review-第N章.md）
   ├─ 通过 → 进入下一章
   └─ 不通过 → 修订本章（最多 3 轮，超限标记 failed）
             ↓
 全部章节 status=completed
             ↓
-33 维度质量审计（按 config.genre 机械激活维度，写入 _audit-第N章.md）
+33 维度质量审计（按 config.genre 机械激活维度，写入 audit/_audit-第N章.md）
             ↓
 整体架构评估（6 项）
   ├─ 通过 → 完成报告
@@ -57,9 +57,9 @@ description: >
 ```
 读 meta/02-写作计划.json.chapters 找未完成评审的章节 N
   ↓
-├─ _review-第N章.md 不存在 → 章节评审门（重做）
-├─ _review-第N章.md 存在但 status != "passed" → 修订循环
-├─ _review-第N章.md 通过但 _audit-第N章.md 缺失 → 补 33 维审计
+├─ review/_review-第N章.md 不存在 → 章节评审门（重做）
+├─ review/_review-第N章.md 存在但 status != "passed" → 修订循环
+├─ review/_review-第N章.md 通过但 audit/_audit-第N章.md 缺失 → 补 33 维审计
 └─ 全部 _review 和 _audit 通过 → 检查是否需要整体架构评估
    ├─ 02-写作计划.json.status != "auditing" → 启动质量循环
    ├─ status == "auditing" 且 retryCount < config.maxRevisionRounds → 继续当前轮
@@ -128,13 +128,13 @@ description: >
 
 ## 章节评审门（5 项检查）
 
-> 📌 **执行位置：** 本步骤由 `continuation` 技能在「步骤 3: 撰写后优化」完成后自动调用，调用结果写入 `chapters/_review-第{XX}章.md`，然后由 `continuation` 技能读取评审结果决定是否进入收尾或回退重写。
+> 📌 **执行位置：** 本步骤由 `continuation` 技能在「步骤 3: 撰写后优化」完成后自动调用，调用结果写入 `review/_review-第{XX}章.md`，然后由 `continuation` 技能读取评审结果决定是否进入收尾或回退重写。
 
 ### 章节评审门流程
 
 **本章完成后，必须通过以下评审才能进入收尾。评审不通过则进入修订循环。**
 
-**🔴 强制要求：评审结果必须写入文件 `chapters/_review-第{XX}章.md`，格式见下方模板。未生成评审文件视为评审未通过，不得进入收尾。**
+**🔴 强制要求：评审结果必须写入文件 `review/_review-第{XX}章.md`，格式见下方模板。未生成评审文件视为评审未通过，不得进入收尾。**
 
 **评审检查清单（仅 5 项，不含 33 维）：**
 - [ ] **人物一致性**：所有角色的言行是否符合其性格核心、说话风格和当前弧线阶段？与人物档案和真相文件一致？
@@ -143,7 +143,7 @@ description: >
 - [ ] **悬念钩子质量**：章末钩子有效？让读者期待下一章？
 - [ ] **质量基线**：字数达标（≥ `config.reviewPassThreshold`）？张力节奏合理？语言无AI痕迹？
 
-**评审文件模板（写入 `chapters/_review-第{XX}章.md`）：**
+**评审文件模板（写入 `review/_review-第{XX}章.md`）：**
 ```markdown
 # 第{XX}章 章节评审门
 - 章节文件: chapters/第{XX}章-{标题}.md
@@ -176,7 +176,7 @@ description: >
 
 ### 审计文件
 
-每章审计结果写入 `chapters/_audit-第{XX}章.md`，独立于 `_review-第N章.md`：
+每章审计结果写入 `audit/_audit-第{XX}章.md`，独立于 `review/_review-第N章.md`：
 
 ```markdown
 # 第{XX}章 33 维审计
@@ -236,7 +236,7 @@ description: >
 - [ ] `meta/02-写作计划.json` 中所有章节 `status` 均为 `"completed"`
 - [ ] 所有章节文件已写入 `chapters/` 目录
 - [ ] `meta/_project-meta.json` 的 `currentStep` 为 `"writing"`
-- [ ] 所有章节已有 `_review-第N章.md` 且 `status = passed`
+- [ ] 所有章节已有 `review/_review-第N章.md` 且 `status = passed`
 
 **⚠️ 承上：本步骤仍在「无中断写作区段」内。禁止向用户提问、禁止确认、禁止报告进度。所有修订在内部循环完成后再统一报告。**
 
@@ -256,10 +256,10 @@ description: >
 
 对每一章执行以下检查（禁止在检查过程中向用户报告）：
 
-1. **读取章节评审文件**：读取 `chapters/_review-第{XX}章.md`，确认该章的逐章自检已通过。评审文件缺失或结论为"不通过" → 标记该章为不合格，回到章节门。
+1. **读取章节评审文件**：读取 `review/_review-第{XX}章.md`，确认该章的逐章自检已通过。评审文件缺失或结论为"不通过" → 标记该章为不合格，回到章节门。
 2. **文件存在性**：检查 `filePath` 指定的文件是否存在
 3. **字数检查（强制）**：使用 Bash 命令 `(Get-Content -Path "chapters/第{XX}章-*.md" -Raw) -replace '\s+','' | Measure-Object -Character | Select-Object -ExpandProperty Characters` 统计实际字数。**字数 < `config.reviewPassThreshold` 标记为不合格。**
-4. **33维度质量审计**（按 `config.genre` 机械激活维度，写入 `_audit-第N章.md`）：
+4. **33维度质量审计**（按 `config.genre` 机械激活维度，写入 `audit/_audit-第N章.md`）：
    - 基础 8 维（必检）
    - 题材激活维度（查"维度激活规则"表）
    - 全部题材通用维度（OOC、时间线、设定冲突、伏笔、文风、信息越界、词汇疲劳、配角降智、配角工具人、台词失真、视角一致性、段落等长、套话密度、公式化转折、列表式结构、支线停滞、弧线平坦、节奏单调、读者期待管理、章节备忘偏离）
@@ -279,7 +279,7 @@ description: >
 2. **若总轮次 ≥ `config.maxTotalRevisionPerChapter`** → 标记 `status: "failed"`，写入决策日志，跳到下一不合格章节
 3. 否则：设 `status: "failed"`，`retryCount` 加 1
 4. **修订该章节**：重写或修改不合格的章节文件
-5. **重新跑 33 维审计**：对该章节重新执行步骤2的质量检查（只检查这一章，不检查其他章节），**覆盖更新 `_audit-第N章.md`**
+5. **重新跑 33 维审计**：对该章节重新执行步骤2的质量检查（只检查这一章，不检查其他章节），**覆盖更新 `audit/_audit-第N章.md`**
 6. **更新 JSON**：写入新的 `wordCount`、`auditScore`、`auditPassed`、`revisionHistory`（追加本次轮次）
 7. 将 `status` 设为 `"completed"`（如通过）或保持 `"failed"`（如仍不合格）
 8. **立即进入下一不合格章节的处理，不用停、不用问**
@@ -371,9 +371,9 @@ description: >
 - `design/99-冲突日志.md` - 记录跨章设定矛盾及解决状态
 - `design/98-写作决策日志.md` - 写作中不确定的决策记录
 
-**章节评审文件（位于 `chapters/` 目录）：**
-- `_review-第N章.md` - 5 项门结果（每章一审，写作时立即）
-- `_audit-第N章.md` - 33 维审计结果（全部完成后才审）
+**章节评审文件：**
+- `review/_review-第N章.md` - 5 项门结果（每章一审，写作时立即）
+- `audit/_audit-第N章.md` - 33 维审计结果（全部完成后才审）
 
 **运行日志：**
 - `meta/_run-log.jsonl` - 每步执行轨迹（自动追加）
@@ -393,7 +393,7 @@ description: >
 - **在质量循环中询问"是否修订"** → 自动修订，不征求意见
 - **在章节门主观判断通过/不通过时跳出 5 项范围** → 严格 5 项，不做综合判断（综合判断是 33 维审计的事）
 - **AI 主观决定激活哪些维度** → 必须按 `config.genre` 机械激活
-- **审计分 ≥ 85 但未写入 `_audit-第N章.md`** → 视为未审计，不得流转
+- **审计分 ≥ 85 但未写入 `audit/_audit-第N章.md`** → 视为未审计，不得流转
 - **整体架构评估时直接复读章节评审** → 必须退一步做整体评估，不重复逐章
 - **完成报告时报告逐章进度** → 仅在结束时一次性汇报
 

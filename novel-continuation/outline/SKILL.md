@@ -277,8 +277,33 @@ digraph outline_workflow {
 - [ ] `meta/02-写作计划.json` 存在
 - [ ] `config.genre` 已设置
 
-根据分析 + 用户回答，生成大纲并更新项目文件：
+根据分析 + 用户回答，生成大纲并更新项目文件。
 
+**🔴 大纲必须按章节拆分为独立文件，写入 `outline/` 目录。每个章节对应一个独立的大纲文件，后续续写前逐一回顾。**
+
+**每章大纲文件模板（写入 `outline/第{XX}章-{标题}.md`）：**
+```markdown
+# 第{XX}章: [标题]
+
+## 核心事件
+- [核心事件1]
+- [核心事件2]
+
+## 人物
+- [出场人物及其在本章的发展]
+
+## 场景列表
+- [场景1]: [描述]
+- [场景2]: [描述]
+
+## 悬念钩子（章末）
+- [钩子内容]
+
+## 章节意图
+- [该章在整体叙事中的作用，伏笔回收/推进主线/深化人物等]
+```
+
+**同时更新 `design/01-大纲.md`（master 大纲索引），保持全局概览视图：**
 ```markdown
 ## 大纲
 
@@ -294,8 +319,9 @@ digraph outline_workflow {
 **大纲生成后、询问用户批准前，必须先更新以下文件。更新完成前不得询问批准。**
 
 **步骤：**
-1. **创建/更新 `design/01-大纲.md`** - 将生成的大纲写入文件
-2. **更新 `meta/02-写作计划.json`** - 填入章节列表：
+1. **创建/更新 `design/01-大纲.md`** - master 大纲索引（全局概览）
+2. **创建每个章节的独立大纲文件到 `outline/` 目录** - `outline/第{XX}章-{标题}.md`（每章详细规划）
+3. **更新 `meta/02-写作计划.json`** - 填入章节列表：
    ```json
    {
      "chapters": [
@@ -310,10 +336,10 @@ digraph outline_workflow {
    }
    ```
    每章的 `status: "pending"`（**注意不是 `completed`**，completed 只用于"已通过评审"）
-3. **更新 `meta/_project-meta.json`** - 设 `currentStep: "outline-ready"`，将 `design/01-大纲.md` 加入 `filesCreated`，更新 `updatedAt`
-4. **确认三个文件均已成功写入**
+4. **更新 `meta/_project-meta.json`** - 设 `currentStep: "outline-ready"`，将 `design/01-大纲.md` 和 `outline/` 目录下的所有大纲文件加入 `filesCreated`，更新 `updatedAt`
+5. **确认 `design/01-大纲.md`、`outline/` 下所有大纲文件、`meta/02-写作计划.json`、`meta/_project-meta.json` 均已成功写入**
 
-**写入运行日志：** 追加 `{"event": "outline_generated", "chapters": N, "timestamp": "..."}`
+**写入运行日志：** 追加 `{"event": "outline_generated", "chapters": N, "outline_files": ["outline/第01章-标题.md", ...], "timestamp": "..."}`
 
 **询问用户批准（全局交互点 #3）。还没有开始写作。**
 

@@ -15,7 +15,7 @@ description: >
 
 **职责划分：**
 - 本技能（continuation）：写前分析 → 撰写 → 撰写后优化 → 收尾 → 自动流转
-- review 技能：5 项章节门（写入 `_review-第N章.md`）+ 33 维全局审计（写入 `_audit-第N章.md`）
+- review 技能：5 项章节门（写入 `review/_review-第N章.md`）+ 33 维全局审计（写入 `audit/_audit-第N章.md`）
 
 **重要原则：** 从第4步开始到全部章节完成，AI 处于无中断写作区段，禁止向用户发送任何消息、禁止使用 AskUserQuestion、禁止停下来等待确认。所有章节必须一次写完才能与用户对话。
 
@@ -97,7 +97,7 @@ digraph continuation_workflow {
   │   └─ 续写前对照 design/01-大纲.md 校验**大纲覆盖度**（核心事件/章节意图/钩子的覆盖率）：
   │       ├─ 覆盖度 ≥ config.outlineCoverageThreshold → 续写
   │       └─ 覆盖度 < config.outlineCoverageThreshold → 写入 design/98-写作决策日志.md 并重写
-  └─ 存在且字数 ≥ config.reviewPassThreshold → 检查 _review-第N章.md
+  └─ 存在且字数 ≥ config.reviewPassThreshold → 检查 review/_review-第N章.md
       ├─ 不存在 → 调用 review 技能（5项门）
       ├─ 存在且 status == "passed" → 找下一章
       └─ 存在但 status == "failed" → 检查总修订轮次
@@ -196,6 +196,15 @@ WHILE meta/02-写作计划.json 中存在 status != "completed" 的章节:
 
 ### 步骤 1: 写前分析（必须执行）
 
+**🔴 续写前一章前，必须先回顾前一章（N-1）的全部质量记录和整体小说状态，确保连贯性。**
+
+0. **前章回顾与整体校验（第1章无前一章时跳过）：**
+   - **读取前一章的大纲**：读取 `outline/第{XX}章-{标题}.md`，确认前一章的规划要点是否已全部完成
+   - **读取前一章的评审结果**：读取 `review/_review-第{XX-1}章.md`，了解前一章评审是否通过，有无遗留问题
+   - **读取前一章的审计结果**：如前一章已有 33 维审计，读取 `audit/_audit-第{XX-1}章.md`，关注不合格维度
+   - **整体小说回顾**：读取 `truth/chapter-summaries.json` 全部章节摘要，回顾整体叙事弧线；读取 `design/06-核心驱动.md` 确认主线/支线/伏笔追踪状态；读取 `design/99-冲突日志.md` 检查待解决矛盾
+   - **连贯性断言**：确认当前章节的起笔与前一章结尾无逻辑断裂、无设定矛盾、无人物 OOC；如有问题写入 `design/98-写作决策日志.md`
+
 1. **读取 `meta/02-写作计划.json`** - 查看各章节状态，确定下一个待创作章节
 2. **读取 `design/01-大纲.md`** - 找到当前章节的规划信息，提取：
    - 核心事件
@@ -204,13 +213,14 @@ WHILE meta/02-写作计划.json 中存在 status != "completed" 的章节:
    - 出场人物
    - 场景列表
    - 章节意图
-3. **读取设计文档**（按 token 预算决定读哪些）：
+3. **读取当前章节的独立大纲**：读取 `outline/第{XX}章-{标题}.md`，获取本章的详细规划（核心事件、场景列表、悬念钩子、章节意图）
+4. **读取设计文档**（按 token 预算决定读哪些）：
    - `design/00-人物档案.md` - 本章出场人物详情
    - `design/03-世界设定书.md` - 本章涉及的世界观规则和场景设定
    - `design/04-时间线.md` - 当前章节的时间位置、前后事件衔接
    - `design/05-术语表.md` - 本章涉及的专有名词拼写和定义
    - `design/06-核心驱动.md` - 主线/支线当前状态、需推动的伏笔回收
-4. **读取真相文件**（按 token 预算决定读哪些）：
+5. **读取真相文件**（按 token 预算决定读哪些）：
    - `truth/world-state.json` - 世界状态
    - `truth/character-matrix.json` - 角色矩阵
    - `truth/resource-ledger.json` - 资源账本
@@ -218,13 +228,13 @@ WHILE meta/02-写作计划.json 中存在 status != "completed" 的章节:
    - `truth/subplot-board.json` - 支线进度板
    - `truth/emotional-arcs.json` - 情感弧线
    - `truth/pending-hooks.json` - 待处理钩子
-5. **前 5 章连贯性检查** - 根据 token 预算选择：
+6. **前 5 章连贯性检查** - 根据 token 预算选择：
    - 完整模式：读取 `chapters/` 中前 5 章原文，逐章比对人物关系、世界观设定、情节走向与约束文档是否一致
    - 摘要模式：仅读 `truth/chapter-summaries.json`，识别偏差后回退到原文
    - 偏差记录到 `design/98-写作决策日志.md`
-6. **提取前 5 章大纲摘要** - 从 `design/01-大纲.md` 提取当前章节及前 5 章的大纲规划（核心事件、悬念钩子、章节意图、伏笔回收），整理为审计基线，供 review 技能综合审计时使用
-7. **更新 `meta/02-写作计划.json`** - 将本章 `status` 设为 `"in_progress"`
-8. **写入运行日志：** `{"event": "chapter_start", "chapter": N, "title": "...", "timestamp": "..."}`
+7. **提取前 5 章大纲摘要** - 从 `outline/` 目录提取前 5 章的独立大纲文件（或从 `design/01-大纲.md` 回退），整理核心事件、悬念钩子、章节意图、伏笔回收，作为审计基线供 review 技能使用
+8. **更新 `meta/02-写作计划.json`** - 将本章 `status` 设为 `"in_progress"`
+9. **写入运行日志：** `{"event": "chapter_start", "chapter": N, "title": "...", "timestamp": "..."}`
 
 ### 步骤 2: 撰写
 
@@ -279,7 +289,7 @@ WHILE meta/02-写作计划.json 中存在 status != "completed" 的章节:
 4. **字数检查（强制）** - 再次使用 Bash 命令检查字数。**字数 < `config.reviewPassThreshold` 则回到步骤 2 扩充内容。**
 5. **写入运行日志：** `{"event": "chapter_polished", "chapter": N, "wordCount": X, "timestamp": "..."}`
 
-> **步骤 3 完成后，自动调用 review 技能进行 5 项章节评审门把关。** 评审结果写入 `chapters/_review-第N章.md`。**通过后**才能进入步骤 4（收尾）；不通过则进入修订循环。
+> **步骤 3 完成后，自动调用 review 技能进行 5 项章节评审门把关。** 评审结果写入 `review/_review-第N章.md`。**通过后**才能进入步骤 4（收尾）；不通过则进入修订循环。
 >
 > 📌 **职责说明：** 5 项章节评审门与 33 维审计已拆分（详见 review SKILL.md）。本技能只触发章节门，**不触发 33 维审计**。33 维审计由 review 技能在全部章节完成后统一执行。
 
@@ -314,7 +324,7 @@ WHILE meta/02-写作计划.json 中存在 status != "completed" 的章节:
 **流转前检查（自动化执行）：**
 
 ```
-读 _review-第N章.md 和 _audit-第N章.md（如有）的轮次信息
+读 review/_review-第N章.md 和 audit/_audit-第N章.md（如有）的轮次信息
   ↓
 总轮次 = chapter.revisionHistory.length
   ↓
@@ -338,7 +348,7 @@ WHILE meta/02-写作计划.json 中存在 status != "completed" 的章节:
 
 **🔴 流转前断言（全部通过才能流转，不通过则阻塞）：**
 
-1. **质量把关文件存在检查**：确认 `chapters/_review-第{XX}章.md` 存在且 `status == "passed"`（由 review 技能生成）。不存在或未通过则阻塞，回到步骤 3 之前重新调用 review 技能。
+1. **质量把关文件存在检查**：确认 `review/_review-第{XX}章.md` 存在且 `status == "passed"`（由 review 技能生成）。不存在或未通过则阻塞，回到步骤 3 之前重新调用 review 技能。
 2. **字数达标检查**：使用 Bash 命令统计字数。**字数 < `config.reviewPassThreshold` 则阻塞流转，回到步骤 2 扩充内容。**
 3. **总修订轮次检查**：参见上一节"单章修订总轮次上限"。
 4. **写作计划状态检查**：读取 `meta/02-写作计划.json`，确认本章 `status` 为 `"completed"`。非 completed 则阻塞。
@@ -391,5 +401,6 @@ WHILE meta/02-写作计划.json 中存在 status != "completed" 的章节:
 - **修改约束文档后未更新真相文件** → 双轨必须同步
 - **AI 主观决定题材特定检查项** → 严格按 `config.genre` 激活
 - **5 章摘要模式检测到偏差不回退读原文** → 偏差优先，超限读取允许一次
+- **续写前未回顾前一章的大纲/评审/审计** → 每次写前分析必须先读 `outline/`、`review/`、`audit/` 中前一章的文件，再读整体小说状态
 
 **所有这些都意味着：从第4步开始到全部章节完成，AI 处于封闭写作模式。零用户交互。不提问。不停顿。不报告进度。写完 ALL 再说话。**
