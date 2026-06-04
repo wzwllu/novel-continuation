@@ -19,6 +19,7 @@
 | **Token 预算管理** | 长篇 20+ 章自动降级：完整 → 摘要 → 强制摘要三档阈值（60% / 85%）|
 | **无中断写作** | 从写作到质量循环结束，零用户交互，自动逐章流转（4 个固定交互点）|
 | **章节前回顾机制** | 每次续写前自动回顾前一章的 outline/review/audit + 整体小说状态，确保连贯性 |
+| **游戏情景润色** | 评审通过后读取游戏大纲+基本情况，进行游戏情景化润色和去AI味处理 |
 | **运行日志** | `meta/_run-log.jsonl` 记录 27 类事件，便于事后审计和断点恢复 |
 | **可调参数** | 7 个核心阈值（minWordCount / reviewPassThreshold / outlineCoverageThreshold / maxRevisionRounds / maxTotalRevisionPerChapter / blockSize / genre）通过 `config` 字段集中管理 |
 
@@ -39,15 +40,17 @@ novel-continuation/
 
 ```
 novel-projects/[项目名称]/
-  meta/          设计/           outline/         chapters/        review/          audit/           truth/
-  _project-meta  00-人物档案     第01章-大纲      第01章-正文      _review-01       _audit-01        world-state
-  02-写作计划    01-大纲(master) 第02章-大纲      第02章-正文      _review-02       _audit-02        character-matrix
-  _run-log       03-世界设定                      _markers                                         chapter-summaries
-                 04-时间线                                                                         ...
-                 05-术语表
-                 06-核心驱动
-                 98-决策日志
-                 99-冲突日志
+   meta/          设计/           outline/         chapters/        review/          audit/           truth/
+   _project-meta  00-人物档案     第01章-大纲      第01章-正文      _review-01       _audit-01        world-state
+   02-写作计划    01-大纲(master) 第02章-大纲      第02章-正文      _review-02       _audit-02        character-matrix
+   _run-log       03-世界设定                      _markers                                         chapter-summaries
+                  04-时间线                                                                         ...
+                  05-术语表
+                  06-核心驱动
+                  游戏大纲(衍生)
+                  游戏基本情况(衍生)
+                  98-决策日志
+                  99-冲突日志
 ```
 
 入口 `SKILL.md` 是工程化枢纽，包含：
@@ -139,9 +142,11 @@ novel-projects/
       03-世界设定书.md               # [必选] 世界设定
       04-时间线.md                   # [必选] 时间线
       05-术语表.md                   # [必选] 术语表
-      06-核心驱动.md                 # [必选] 主线/支线/伏笔追踪
-      98-写作决策日志.md             # [运行时] 写作中不确定的决策记录
-      99-冲突日志.md                 # [运行时] 跨章设定矛盾记录
+       06-核心驱动.md                 # [必选] 主线/支线/伏笔追踪
+       98-写作决策日志.md             # [运行时] 写作中不确定的决策记录
+       99-冲突日志.md                 # [运行时] 跨章设定矛盾记录
+       游戏大纲.md                   # [游戏衍生] 游戏主线/支线/剧情节点概要
+       游戏基本情况.md               # [游戏衍生] 游戏类型/世界观/角色设定/核心机制
     outline/                         # 按章节拆分的大纲
       第XX章-大纲.md                 # [每章] 独立大纲文件（核心事件/人物/场景/悬念钩子）
     chapters/                        # 章节正文
@@ -163,10 +168,11 @@ novel-projects/
       年代考据.json                  # [按题材] 仅 dushi/lishi
 ```
 
-**约束文档三层分类：**
+**约束文档四层分类：**
 - **必选**（12 个）：5 design + 7 truth，任何题材都生成
 - **按题材激活**（3 个）：02-风格指南、truth/数值系统、truth/年代考据
 - **运行时追加**（3 个）：98-写作决策日志、99-冲突日志、meta/_run-log.jsonl
+- **游戏衍生**（2 个）：游戏大纲.md、游戏基本情况.md（游戏小说续写时追加，用于评审后润色）
 
 ### 目录职责划分
 
@@ -232,8 +238,8 @@ novel-projects/
    │      步骤 1: 写前分析（按 token 预算动态降级读设计文档 + 真相文件）
    │      步骤 2: 撰写
    │      步骤 3: 撰写后优化
+   │      每章完成 → review 5项门 → 润色（读游戏大纲+基本情况，去AI味）
    │      步骤 4: 收尾 + 自动流转
-   │      每章完成后调用 review 技能做章节门（5 项，写入 review/）
    │
    └─[writing/quality-loop]→ review
        5-A. 章节评审门（每章 5 项检查，写入 review/_review-第N章.md）
@@ -252,6 +258,7 @@ novel-projects/
 - **悬念承上启下**：每章结尾留下钩子
 - **逐章写作，全流程零中断**：一旦开始，连续完成所有章节
 - **前章回顾机制**：每次续写前自动检索前一章大纲/评审/审计 + 整体小说状态
+- **评审后润色**：章节评审通过后读取游戏大纲+基本情况，做情景化润色和去AI味
 - **只使用串行模式**：不并行、不 Teams
 - **5 项门 + 33 维拆分**：每章轻量门（review/），全局重审计（audit/）
 - **题材机械激活维度**：禁止 AI 主观判断
