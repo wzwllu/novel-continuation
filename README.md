@@ -20,7 +20,7 @@
 | **无中断写作** | 从写作到质量循环结束，零用户交互，自动逐章流转（4 个固定交互点）|
 | **章节前回顾机制** | 每次续写前自动回顾前一章的 outline/review/audit + 整体小说状态，确保连贯性 |
 | **运行日志** | `meta/_run-log.jsonl` 记录 27 类事件，便于事后审计和断点恢复 |
-| **可调参数** | 5 个核心阈值（minWordCount / reviewPassThreshold / outlineCoverageThreshold / maxRevisionRounds / maxTotalRevisionPerChapter）通过 `config` 字段集中管理 |
+| **可调参数** | 7 个核心阈值（minWordCount / reviewPassThreshold / outlineCoverageThreshold / maxRevisionRounds / maxTotalRevisionPerChapter / blockSize / genre）通过 `config` 字段集中管理 |
 
 ---
 
@@ -224,8 +224,8 @@ novel-projects/
   │   2. 建议续写章数 + 询问 2 个问题（全局交互点 #2）
    │   3. 生成大纲（写入 design/01-大纲.md master 索引 + outline/ 每章详细规划）
    │   3-A. 强化约束文档
-  │   → 全局交互点 #3 询问大纲批准（不通过时询问修改意见，2 轮后强制 failed）
-  │
+   │   → 全局交互点 #3 询问大纲批准（不通过时询问修改意见，2 轮后强制 failed）
+   │
    ├─[constraint-docs]→ continuation
    │   4. 逐章写作（串行模式，零中断）
    │      步骤 0: 前章回顾（读前一章 outline/review/audit + 整体小说状态）
@@ -234,12 +234,12 @@ novel-projects/
    │      步骤 3: 撰写后优化
    │      步骤 4: 收尾 + 自动流转
    │      每章完成后调用 review 技能做章节门（5 项，写入 review/）
-  │
+   │
    └─[writing/quality-loop]→ review
        5-A. 章节评审门（每章 5 项检查，写入 review/_review-第N章.md）
        5-B. 33 维度审计（全部完成后统一执行，写入 audit/_audit-第N章.md）
-      5-C. 整体架构评估（6 项）
-      5-D. 完成报告（全局交互点 #4）
+       5-C. 整体架构评估（6 项）
+       5-D. 完成报告（全局交互点 #4）
 ```
 
 ---
@@ -256,7 +256,7 @@ novel-projects/
 - **5 项门 + 33 维拆分**：每章轻量门（review/），全局重审计（audit/）
 - **题材机械激活维度**：禁止 AI 主观判断
 - **约束文档三层分类**：必选 / 按题材 / 运行时
-- **可调参数集中管理**：5 个核心阈值 + token 预算
+- **可调参数集中管理**：7 个核心阈值 + token 预算
 
 ---
 
